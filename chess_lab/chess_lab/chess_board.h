@@ -43,7 +43,7 @@ namespace chesslab {
 			this->ClientSize = System::Drawing::Size(660, 730);
 			this->Size = System::Drawing::Size(730, 780);
 			this->Name = L"MMM";
-			this->Text = L"Hueta";
+			this->Text = L"Slavic sdai aig";
 			this->ResumeLayout(false);
 			chessBoard = gcnew array<Button^, 2>(8, 8);
 			
@@ -79,7 +79,7 @@ namespace chesslab {
 					button->Size = Drawing::Size(buttonSize, buttonSize);
 					button->Location = Drawing::Point(padding+col * (buttonSize), padding+row * (buttonSize));
 					button->Click += gcnew EventHandler(this, &chess_board::OnButtonClicked);
-					if (row<=1) {
+					if (col>5) {
 						if ((row + col) % 2 == 0) { // Light square
 							button->BackColor = Drawing::Color::White;
 
@@ -219,14 +219,6 @@ namespace chesslab {
 				else if (targetPosition == nullptr)
 				{
 					targetPosition = button;
-					// Сохраняем цвет клетки, на которую перемещается фигура
-					Drawing::Color targetPositionColor = button->BackColor;
-					// Перемещаем фигуру на новую позицию
-					targetPosition->Text = selectedPiece->Text;
-					selectedPiece->Text = "";
-					// Восстанавливаем цвет предыдущей клетки и устанавливаем новый цвет для целевой клетки
-					selectedPiece->BackColor = selectedPieceColor;
-					targetPosition->BackColor = targetPositionColor;
 					for (int i = 0; i < 8; i++) {
 						for (int j = 0; j < 8; j++) {
 							if (targetPosition == chessBoard[i, j]) {
@@ -239,10 +231,23 @@ namespace chesslab {
 							break;
 						}
 					}
-					back_up_chess.SetPiece(tar_col, tar_row, *back_up_chess.GetPiece(sel_row,sel_col));
-					back_up_chess.SetPiece(sel_col, sel_row);
+					if (back_up_chess.do_move(sel_row, sel_col, tar_row,tar_col) == true) {
+						Drawing::Color targetPositionColor = button->BackColor;
+						// Перемещаем фигуру на новую позицию
+						targetPosition->Text = selectedPiece->Text;
+						selectedPiece->Text = "";
+						// Восстанавливаем цвет предыдущей клетки и устанавливаем новый цвет для целевой клетки
+						selectedPiece->BackColor = selectedPieceColor;
+						targetPosition->BackColor = targetPositionColor;
+						back_up_chess.SetPiece(tar_row, tar_col, *back_up_chess.GetPiece(sel_row, sel_col));
+						back_up_chess.SetPiece(sel_row, sel_col);
+					}
+					else {
+						MessageBox::Show("Так нельзя.");
+					}
 					selectedPiece = nullptr;
 					targetPosition = nullptr;
+					
 				}
 			}
 	protected:
