@@ -239,8 +239,8 @@ namespace chesslab {
 						// Восстанавливаем цвет предыдущей клетки и устанавливаем новый цвет для целевой клетки
 						selectedPiece->BackColor = selectedPieceColor;
 						targetPosition->BackColor = targetPositionColor;
-						back_up_chess.SetPiece(tar_row, tar_col, *back_up_chess.GetPiece(sel_row, sel_col));
-						back_up_chess.SetPiece(sel_row, sel_col);
+						//back_up_chess.SetPiece(tar_row, tar_col, *back_up_chess.GetPiece(sel_row, sel_col));
+						//back_up_chess.SetPiece(sel_row, sel_col);
 					}
 					else {
 						MessageBox::Show("Так нельзя.");

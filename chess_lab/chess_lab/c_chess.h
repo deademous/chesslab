@@ -80,12 +80,37 @@ public:
         m_board[row][col] = ChessPiece(PieceType::Pusto, PieceColor::None);
     }
     bool do_move(int selected_row, int selected_col, int target_row, int target_col) {
+        bool stop = false;
+        while (!stop)
+        {
+            if (turn_white == true) {
+                if (m_board[selected_row][selected_col].GetColor() != PieceColor::White) {
+                    return false;
+                }
+            }
+            else if (turn_white == false) {
+                if (m_board[selected_row][selected_col].GetColor() != PieceColor::Black) {
+                    return false;
+                }
+            }
+        }
+        if (m_board[target_row][target_col].GetType() == PieceType::King)
+            if (m_board[selected_row][selected_col].GetColor() == PieceColor::White)
+            {//белые выйграли
+                return false;
+            }
+            else
+            {//негерс винс
+                return false;
+            }
+
+        if (turn_white == true)
+            turn_white = false;
+        else
+            turn_white = true;
+        return true;
         ChessPiece* selected_piece = GetPiece(selected_row, selected_col);
         // Проверяем, что выбранная клетка содержит фигуру
-        if (selected_piece->GetType() == PieceType::Pusto || selected_piece->GetColor() == PieceColor::None) {
-            // Нет фигуры в выбранной клетке
-            return false;
-        }
         ChessPiece* target_piece = GetPiece(target_row, target_col);
         if (target_piece->GetColor() == selected_piece->GetColor()) {
             return false;
@@ -110,165 +135,261 @@ public:
         }
         return false;
     }
-    bool move_bishop(int selected_row, int selected_col, int target_row, int target_col) {
-        ChessPiece* selected_piece = GetPiece(selected_row, selected_col);
-        if (abs(target_row - selected_row) == abs(target_col - selected_col)) {
-            int row_diff = (target_row > selected_row) ? 1 : -1;
-            int col_diff = (target_col > selected_col) ? 1 : -1;
+    bool move_bishop(int bishopY, int bishopX, int thatY, int thatX) {
+        bool invalid = false;
 
-            int current_row = selected_row + row_diff;
-            int current_col = selected_col + col_diff;
+        if (abs(bishopX - thatX) == abs(bishopY - thatY))
+        {
+            int xIncrement = (thatX - bishopX) / (abs(thatX - bishopX));
+            int yIncrement = (thatY - bishopY) / (abs(thatY - bishopY));
 
-            while (current_row != target_row && current_col != target_col) {
-                ChessPiece* current_piece = GetPiece(current_row, current_col);
-                if (current_piece->GetColor() != PieceColor::None) {
+            for (int i = 1; i < abs(bishopX - thatX); i++)
+            {
+                if (m_board[bishopX + xIncrement * i][bishopY + yIncrement * i].GetColor() != PieceColor::None)
                     return false;
-                }
-                current_row += row_diff;
-                current_col += col_diff;
-            }
 
-            ChessPiece* target_piece = GetPiece(target_row, target_col);
-            if (target_piece->GetColor() == PieceColor::None || target_piece->GetColor() != selected_piece->GetColor()) {
-                return true;
             }
         }
-        return false;
-    }
-    bool move_pawn(int selected_row, int selected_col, int target_row, int target_col) {
-        ChessPiece* selected_piece = GetPiece(selected_row, selected_col);
-        int direction = (selected_piece->GetColor() == PieceColor::White) ? -1 : 1;
+        else
+            return false;
 
-        if (target_col == selected_col && target_row == selected_row + direction) {
-            ChessPiece* target_piece = GetPiece(target_row, target_col);
-            if (target_piece->GetColor() == PieceColor::None) {
-                SetPiece(target_row, target_col, *selected_piece);
-                SetPiece(selected_row, selected_col);
-                return true;
-            }
-        }
-        else if (target_col == selected_col && target_row == selected_row + (2 * direction)) {
-            ChessPiece* target_piece = GetPiece(target_row, target_col);
-            ChessPiece* intermediate_piece = GetPiece(selected_row + direction, selected_col);
-            if (target_piece->GetColor() == PieceColor::None && intermediate_piece->GetColor() == PieceColor::None &&
-                ((selected_piece->GetColor() == PieceColor::White && selected_row == 1) ||
-                    (selected_piece->GetColor() == PieceColor::Black && selected_row == 6))) {
-                SetPiece(target_row, target_col, *selected_piece);
-                SetPiece(selected_row, selected_col);
-                return true;
-            }
-        }
-        else if ((target_col == selected_col + 1 || target_col == selected_col - 1) && target_row == selected_row + direction) {
-            ChessPiece* target_piece = GetPiece(target_row, target_col);
-            if (target_piece->GetColor() != PieceColor::None && target_piece->GetColor() != selected_piece->GetColor()) {
-                return true;
-            }
-        }
-        return false;
-    }
-    bool move_king(int selected_row, int selected_col, int target_row, int target_col) {
-        // Проверяем, что целевая клетка находится на расстоянии не больше чем 1 клетка от начальной клетки
-        if (abs(target_row - selected_row) <= 1 && abs(target_col - selected_col) <= 1) {
-            // Проверяем, что клетка не занята другой фигурой
-            if (GetPiece(target_row, target_col) == nullptr) {
-                // Производим перемещение фигуры
-                ChessPiece* selected_piece = GetPiece(selected_row, selected_col);
-                return true;
-            }
-        }
-
-        // Ход недопустим для короля
-        return false;
-    }
-    bool move_queen(int selected_row, int selected_col, int target_row, int target_col) {
-        // Проверяем, что начальная и конечная клетки находятся на одной горизонтали, вертикали или диагонали
-        if (selected_row == target_row || selected_col == target_col || abs(target_row - selected_row) == abs(target_col - selected_col)) {
-            int delta_row = (target_row - selected_row) > 0 ? 1 : (target_row - selected_row) < 0 ? -1 : 0;
-            int delta_col = (target_col - selected_col) > 0 ? 1 : (target_col - selected_col) < 0 ? -1 : 0;
-
-            int current_row = selected_row + delta_row;
-            int current_col = selected_col + delta_col;
-
-            // Проверяем, что путь свободен
-            while (current_row != target_row || current_col != target_col) {
-                // Проверяем, что промежуточная клетка пуста
-                if (GetPiece(current_row, current_col) != nullptr) {
-                    // На пути королевы есть другая фигура
-                    return false;
-                }
-
-                current_row += delta_row;
-                current_col += delta_col;
-            }
-
-            // Производим перемещение фигуры
-            ChessPiece* selected_piece = GetPiece(selected_row, selected_col);
-            ChessPiece* target_piece = GetPiece(target_row, target_col);
-            // Если на целевой клетке была фигура, удаляем её
-            if (target_piece != nullptr) {
-                delete target_piece;
-            }
-
-            return true;
-        }
-
-        // Ход недопустим для королевы
-        return false;
-    }
-    bool move_knight(int selected_row, int selected_col, int target_row, int target_col) {
-        // Проверяем валидность хода для коня
-        if ((abs(target_row - selected_row) == 2 && abs(target_col - selected_col) == 1) ||
-            (abs(target_row - selected_row) == 1 && abs(target_col - selected_col) == 2)) {
-            // Ход для коня валиден, производим перемещение
-            ChessPiece* selected_piece = GetPiece(selected_row, selected_col);
-            ChessPiece* target_piece = GetPiece(target_row, target_col);
-            // Если на целевой клетке была фигура, удаляем её
-            if (target_piece != nullptr) {
-                delete target_piece;
-            }
-            return true;
-        }
-        // Ход недопустим для коня
-        return false;
-    }
-    bool move_rook(int selected_row, int selected_col, int target_row, int target_col) {
-        // Проверяем, что путь между начальной и конечной клеткой для ладьи свободен
-        if (selected_row == target_row || selected_col == target_col) {
-            int start_row = selected_row;
-            int start_col = selected_col;
-            int delta_row = 0;
-            int delta_col = 0;
-            // Определяем направление движения ладьи
-            if (selected_row == target_row) {
-                // Движение по горизонтали
-                delta_col = (target_col - selected_col) > 0 ? 1 : -1;
+        if (invalid == false)
+        {
+            if (turn_white == true) {
+                SetPiece(thatY, thatX, ChessPiece(PieceType::Bishop, PieceColor::White));
+                SetPiece(bishopY, bishopX);
             }
             else {
-                // Движение по вертикали
-                delta_row = (target_row - selected_row) > 0 ? 1 : -1;
+                SetPiece(thatY, thatX, ChessPiece(PieceType::Bishop, PieceColor::Black));
+                SetPiece(bishopY, bishopX);
             }
-            // Проверяем, что путь свободен
-            while (start_row != target_row || start_col != target_col) {
-                start_row += delta_row;
-                start_col += delta_col;
-                // Проверяем, что промежуточная клетка пуста
-                if (GetPiece(start_row, start_col) != nullptr) {
-                    // На пути ладьи есть другая фигура
-                    return false;
+            
+            return true;
+        }
+        else
+        {
+            return false;
+        }
+    }
+    bool move_pawn(int pawnY, int pawnX, int thatY, int thatX) {
+        bool invalid = false;
+        if (m_board[pawnY][pawnX].GetColor() == PieceColor::White)
+        {
+
+            if (pawnX == thatX && thatY == pawnY + 1 && m_board[thatY][thatX].GetColor() == PieceColor::None)
+            {
+                if (turn_white == true) {
+                    SetPiece(thatY, thatX, ChessPiece(PieceType::Pawn, PieceColor::White));
+                    SetPiece(pawnY, pawnX);
                 }
+                else {
+                    SetPiece(thatY, thatX, ChessPiece(PieceType::Pawn, PieceColor::Black));
+                    SetPiece(pawnY, pawnX);
+                }
+                return true;
             }
-            // Производим перемещение фигуры
-            ChessPiece* selected_piece = GetPiece(selected_row, selected_col);
-            ChessPiece* target_piece = GetPiece(target_row, target_col);
-            // Если на целевой клетке была фигура, удаляем её
-            if (target_piece != nullptr) {
-                delete target_piece;
+            else
+                if ((pawnX + 1 == thatX || pawnX - 1 == thatX) && pawnY + 1 == thatY && m_board[thatY][thatX].GetColor() == PieceColor::Black)
+                {
+                    if (turn_white == true) {
+                        SetPiece(thatY, thatX, ChessPiece(PieceType::Pawn, PieceColor::White));
+                        SetPiece(pawnY, pawnX);
+                    }
+                    else {
+                        SetPiece(thatY, thatX, ChessPiece(PieceType::Pawn, PieceColor::Black));
+                        SetPiece(pawnY, pawnX);
+                    }
+                    return true;
+                }
+                else
+                    return false;
+        }
+        else
+            if (m_board[pawnY][pawnX].GetColor() == PieceColor::Black)
+            {
+                if (pawnX == thatX && thatY == pawnY - 1 && m_board[thatY][thatX].GetColor() == PieceColor::None)
+                {
+                    if (turn_white == true) {
+                        SetPiece(thatY, thatX, ChessPiece(PieceType::Pawn, PieceColor::White));
+                        SetPiece(pawnY, pawnX);
+                    }
+                    else {
+                        SetPiece(thatY, thatX, ChessPiece(PieceType::Pawn, PieceColor::Black));
+                        SetPiece(pawnY, pawnX);
+                    }
+                    return true;
+                }
+                else
+                    if ((pawnX + 1 == thatX || pawnX - 1 == thatX) && pawnY - 1 == thatY && m_board[thatY][thatX].GetColor() == PieceColor::White)
+                    {
+                        if (turn_white == true) {
+                            SetPiece(thatY, thatX, ChessPiece(PieceType::Pawn, PieceColor::White));
+                            SetPiece(pawnY, pawnX);
+                        }
+                        else {
+                            SetPiece(thatY, thatX, ChessPiece(PieceType::Pawn, PieceColor::Black));
+                            SetPiece(pawnY, pawnX);
+                        }
+                        return true;
+                    }
+                    else
+                        return false;
+            }
+            else
+                return false;
+    }
+    bool move_king(int selected_row, int selected_col, int target_row, int target_col) {
+        if (abs(selected_row - target_row) <= 1)
+            if (abs(selected_col - target_col) <= 1)
+            {
+                if (turn_white == true) {
+                    SetPiece(target_row, target_col, ChessPiece(PieceType::King, PieceColor::White));
+                    SetPiece(selected_row, selected_col);
+                }
+                else {
+                    SetPiece(target_row, target_col, ChessPiece(PieceType::King, PieceColor::Black));
+                    SetPiece(selected_row, selected_col);
+                }
+                
+                return true;
+            }
+            else return false;
+        else return false;
+    }
+    bool move_queen(int queenY, int queenX, int thatY, int thatX) {
+        int yIncrement;
+        int xIncrement;
+        bool invalid = false;
+
+        if (queenX != thatX || queenY != thatY)
+	{
+
+		if (queenX == thatX)
+		{
+			yIncrement = (thatY - queenY) / (abs(thatY - queenY));
+			for (int i = queenY + yIncrement; i != thatY; i += yIncrement)
+			{
+
+				if (m_board[thatX][i].GetColor() != PieceColor::None)
+					return false;
+
+			}
+		}
+		else
+			if (queenY == thatY)
+			{
+
+				xIncrement = (thatX - queenX) / (abs(thatX - queenX));
+				for (int i = queenX + xIncrement; i != thatX; i += xIncrement)
+				{
+					if (m_board[i][thatY].GetColor() != PieceColor::None)
+						return false;
+				}
+			}
+			else
+				if (abs(queenX - thatX) == abs(queenY - thatY))
+				{
+					xIncrement = (thatX - queenX) / (abs(thatX - queenX));
+					yIncrement = (thatY - queenY) / (abs(thatY - queenY));
+
+					for (int i = 1; i < abs(queenX - thatX); i++)
+					{
+						if (m_board[queenX + xIncrement*i][queenY + yIncrement*i].GetColor() != PieceColor::None)
+							return false;
+
+					}
+				}
+				else
+					return false;
+		//if()
+	}
+
+
+
+	if (invalid == false)
+	{
+        if (turn_white == true) {
+            SetPiece(thatY, thatX, ChessPiece(PieceType::Queen, PieceColor::White));
+            SetPiece(queenY, queenX);
+        }
+        else {
+            SetPiece(thatY, thatX, ChessPiece(PieceType::Queen, PieceColor::Black));
+            SetPiece(queenY, queenX);
+        }
+       
+		return true;
+	}
+	else
+	{
+		return false;
+	}
+}
+    bool move_knight(int knightY, int knightX, int thatY, int thatX) {
+        if ((abs(knightX - thatX) == 2 && abs(knightY - thatY) == 1) || (abs(knightX - thatX) == 1 && abs(knightY - thatY) == 2))
+        {
+            if (turn_white == true) {
+                SetPiece(thatY, thatX, ChessPiece(PieceType::Knight, PieceColor::White));
+                SetPiece(knightY, knightX);
+            }
+            else {
+                SetPiece(thatY, thatX, ChessPiece(PieceType::Knight, PieceColor::Black));
+                SetPiece(knightY, knightX);
             }
             return true;
         }
-        // Ход недопустим для ладьи
-        return false;
+        else
+        {
+            return false;
+        }
+    }
+    bool move_rook(int rookY, int rookX, int thatY, int thatX) {
+        bool invalid = false;
+        if (rookX != thatX || rookY != thatY)
+        {
+
+            if (rookX == thatX)
+            {
+                int yIncrement = (thatY - rookY) / (abs(thatY - rookY));
+                for (int i = rookY + yIncrement; i != thatY; i += yIncrement)
+                {
+
+                    if (m_board[thatX][i].GetColor() != PieceColor::None)
+                        return false;
+
+                }
+            }
+            else
+                if (rookY == thatY)
+                {
+
+                    int xIncrement = (thatX - rookX) / (abs(thatX - rookX));
+                    for (int i = rookX + xIncrement; i != thatX; i += xIncrement)
+                    {
+                        if (m_board[i][thatY].GetColor() != PieceColor::None)
+                            return false;
+                    }
+                }
+                else
+                    return false;
+        }
+        if (invalid == false)
+        {
+            if (turn_white == true) {
+                SetPiece(thatY, thatX, ChessPiece(PieceType::Rook, PieceColor::White));
+                SetPiece(rookY, rookX);
+            }
+            else {
+                SetPiece(thatY, thatX, ChessPiece(PieceType::Rook, PieceColor::Black));
+                SetPiece(rookY, rookX);
+            }
+            return true;
+        }
+        else
+        {//Return some erorr or something. Probably return false;
+            return false;
+        }
     }
 private:
     ChessPiece m_board[8][8];
+    bool turn_white = true;
 };
